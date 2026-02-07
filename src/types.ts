@@ -17,7 +17,6 @@ export enum METHOD {
   OPTIONS = 'options',
   HEAD = 'head',
 }
-export type Method = 'get' | 'post' | 'put' | 'delete' | 'patch' | 'options' | 'head'
 export const GET = METHOD.GET
 export const POST = METHOD.POST
 export const PUT = METHOD.PUT
@@ -32,6 +31,11 @@ export type CTXArgument<CTX extends Obj = Empty> = CTX & {
   res: Response
 }
 
+export type NanaLogger = {
+  log: (...args: any[]) => void
+  error: (...args: any[]) => void
+}
+
 export type NanaMiddlewareCreateContext<NewCTX extends Obj = Empty, _ParentCTX extends Obj = Empty> = (
   _ctx: CTXArgument<_ParentCTX>,
 ) => Promisable<NewCTX | void>
@@ -44,13 +48,13 @@ export type NanaControllerHandler<CTX extends Obj = Empty, Data = any> = (
   _ctx: CTXArgument<CTX>,
 ) => Promisable<Data>
 
-export type NanaAction<CTX extends Obj = Empty, Data = any> = (
-  data: Data,
+export type NanaAction<CTX extends Obj = Empty> = (
+  data: any,
   _ctx: CTXArgument<CTX>,
 ) => Promisable<void>
 
-export type NanaTransformer<CTX extends Obj = Empty, SourceData = any, TargetData = any> = (
-  data: SourceData,
+export type NanaWrapper<CTX extends Obj = Empty, TargetData = any> = (
+  data: any,
   _ctx: CTXArgument<CTX>,
 ) => Promisable<TargetData>
 

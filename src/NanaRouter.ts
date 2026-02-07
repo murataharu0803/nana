@@ -1,9 +1,9 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable @stylistic/max-len */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Router as ExpressRouter } from 'express'
 
-import { defaultAction, defaultErrorHandler, defaultTransformer } from './defaults'
+import { defaultAction, defaultErrorHandler } from './defaults'
 import { NanaController } from './NanaController'
 import { NanaMiddleware } from './NanaMiddleware'
 import {
@@ -13,115 +13,117 @@ import {
   NanaAction,
   NanaControllerHandler,
   NanaErrorHandler,
-  NanaTransformer,
+  NanaLogger,
+  NanaMiddlewareCreateContext,
+  NanaPostHandler,
+  NanaWrapper,
   Obj,
 } from './types'
-import { routeChecker } from './util'
 
-export class NanaRouter<
-  NewCTX extends Obj = Empty,
-  Data = any,
-  _ParentCTX extends Obj = Empty,
-  _ParentData = Data,
-  __CTX extends _ParentCTX & NewCTX = _ParentCTX & NewCTX,
-> {
-  public parent?: NanaRouter<any, _ParentData, any, any, _ParentCTX> | ExpressRouter
+export class NanaRouter<CTX extends Obj = Empty, WrappedData = any> {
+  public parent?: NanaRouter<any, WrappedData> | ExpressRouter
   public readonly expressRouter: ExpressRouter
-  public action?: NanaAction<__CTX, Data>
-  public transformer: NanaTransformer<__CTX, _ParentData, Data>
-  public errorHandler?: NanaErrorHandler<__CTX>
-  public readonly children: Record<string, NanaRouter<any, any, __CTX, Data, any> | NanaController<__CTX, any, Data> | ExpressRouter> = {}
+  public action?: NanaAction<CTX>
+  public wrapper?: NanaWrapper<CTX, WrappedData>
+  public errorHandler?: NanaErrorHandler<CTX>
+  public logger: NanaLogger
 
-  readonly _transformer: NanaTransformer<__CTX, Data> = async<Result = any>(data: Result, ctx: CTXArgument<__CTX>) =>
-    this.parent instanceof NanaRouter
-      ? this.transformer(await this.parent._transformer(data as any, ctx), ctx)
-      : this.transformer(data as any, ctx)
+  readonly combinedWrapper: NanaWrapper<CTX, WrappedData> = async(data: any, ctx: CTXArgument<CTX>) => {
+    const wrapped: WrappedData = this.wrapper ? await this.wrapper(data, ctx) : data as unknown as WrappedData
+    if (this.parent instanceof NanaRouter) return this.parent.combinedWrapper(wrapped, ctx)
+    return wrapped
+  }
+
+  readonly finalAction: NanaAction<CTX> = (data, ctx) => {
+    if (this.action) return this.action(data, ctx)
+    if (this.parent instanceof NanaRouter) return this.parent.finalAction(data, ctx)
+    return defaultAction(data, ctx)
+  }
+
+  readonly finalErrorHandler: NanaErrorHandler<CTX> = (err, ctx) => {
+    if (this.errorHandler) return this.errorHandler(err, ctx)
+    if (this.parent instanceof NanaRouter) return this.parent.finalErrorHandler(err, ctx)
+    return defaultErrorHandler(err, ctx)
+  }
 
   constructor(
     action?: typeof this.action,
-    transformer?: typeof this.transformer,
+    wrapper?: typeof this.wrapper,
     errorHandler?: typeof this.errorHandler,
+    logger?: typeof this.logger,
   ) {
     this.action = action
-    this.transformer = transformer || defaultTransformer
+    this.wrapper = wrapper
     this.errorHandler = errorHandler
+    this.logger = logger || console
     this.expressRouter = ExpressRouter()
   }
 
-  use<ChildNewCTX extends Obj = Empty>(_routeName: string): NanaRouter<ChildNewCTX, any, __CTX, Data>
-  use<ChildNewCTX extends Obj = Empty>(_routeName: string, _router: NanaRouter<ChildNewCTX, any, __CTX, Data>): void
-  use<_, ThisCTX extends Partial<NewCTX> = NewCTX>(_middleware: NanaMiddleware<ThisCTX, _ParentCTX>): void
-  use<ChildNewCTX extends Obj = Empty, ThisCTX extends Partial<NewCTX> = NewCTX>(
-    ...args: [string] | [string, NanaRouter<ChildNewCTX, any, __CTX, Data> | ExpressRouter]
-      | [NanaMiddleware<ThisCTX, _ParentCTX> | ExpressRouter]
+  useRoute(route: string, router: NanaRouter<CTX, any>) {
+    this.expressRouter.use(route, router.expressRouter)
+    router.parent = this
+    return this // for chaining
+  }
+
+  useMiddleware<NewCTX extends Obj = CTX>(
+    getContext: NanaMiddlewareCreateContext<NewCTX, CTX> = _ => ({} as NewCTX),
+    postHandler?: NanaPostHandler<NewCTX & CTX>,
   ) {
-    const [routeName, toMount] = typeof args[0] === 'string' ? [args[0], args[1]] : ['/', args[0]]
-    const route = routeChecker(routeName)
-    if (toMount instanceof NanaRouter) {
-      if (this.children[route])
-        throw new Error(`Route "${route}" already exists in parent router.`)
-      this.expressRouter.use(route, toMount.expressRouter)
-      this.children[route] = toMount
-      toMount.parent = this
-      toMount.action ||= this.action
-      toMount.errorHandler ||= this.errorHandler
-    } else if (toMount instanceof NanaMiddleware) {
-      const middleware = toMount as NanaMiddleware<ThisCTX, _ParentCTX>
-      this.expressRouter.use(middleware.handler)
-    } else {
-      const router = new NanaRouter<ChildNewCTX, any, __CTX, Data>(
-        this.action,
-        defaultTransformer,
-        this.errorHandler,
-      )
-      router.parent = this
-      this.expressRouter.use(route, router.expressRouter)
-      this.children[route] = router
-      return router
-    }
+    const middleware = new NanaMiddleware<NewCTX, CTX>(
+      getContext,
+      postHandler,
+      this.finalErrorHandler,
+      this.logger,
+    )
+    this.expressRouter.use(middleware.handler)
+    return this.useContext<NewCTX>() // for chaining
+  }
+
+  useContext<NewCTX extends Obj = CTX>() {
+    return this as unknown as NanaRouter<NewCTX, WrappedData>
   }
 
   private _createController<Result>(
     method: METHOD,
     route: string,
-    handler: NanaControllerHandler<__CTX, Result> | NanaController<__CTX, Result, Data>,
+    handler: NanaControllerHandler<CTX, Result>,
   ) {
-    route = routeChecker(route)
-    const controller = handler instanceof NanaController
-      ? handler : new NanaController<__CTX, Result, Data>(handler)
-    controller.action ||= this.action || defaultAction
-    controller.errorHandler ||= this.errorHandler || defaultErrorHandler
-    controller.transformer = (data, ctx) => this._transformer(data as any, ctx)
-    this.children[route] = controller
-    this.expressRouter[method](route, controller._handler)
+    const controller = new NanaController<CTX, Result>(
+      handler,
+      this.finalAction,
+      this.combinedWrapper,
+      this.finalErrorHandler,
+      this.logger,
+    )
+    this.expressRouter[method](route, controller.finalHandler.bind(controller))
     return controller
   }
 
-  get<Result = any>(route: string, handler: NanaControllerHandler<__CTX, Result> | NanaController<__CTX, Result, Data>) {
+  get<Result = any>(route: string, handler: NanaControllerHandler<CTX, Result>) {
     return this._createController<Result>(METHOD.GET, route, handler)
   }
 
-  post<Result = any>(route: string, handler: NanaControllerHandler<__CTX, Result> | NanaController<__CTX, Result, Data>) {
+  post<Result = any>(route: string, handler: NanaControllerHandler<CTX, Result>) {
     return this._createController<Result>(METHOD.POST, route, handler)
   }
 
-  put<Result = any>(route: string, handler: NanaControllerHandler<__CTX, Result> | NanaController<__CTX, Result, Data>) {
+  put<Result = any>(route: string, handler: NanaControllerHandler<CTX, Result>) {
     return this._createController<Result>(METHOD.PUT, route, handler)
   }
 
-  delete<Result = any>(route: string, handler: NanaControllerHandler<__CTX, Result> | NanaController<__CTX, Result, Data>) {
+  delete<Result = any>(route: string, handler: NanaControllerHandler<CTX, Result>) {
     return this._createController<Result>(METHOD.DELETE, route, handler)
   }
 
-  patch<Result = any>(route: string, handler: NanaControllerHandler<__CTX, Result> | NanaController<__CTX, Result, Data>) {
+  patch<Result = any>(route: string, handler: NanaControllerHandler<CTX, Result>) {
     return this._createController<Result>(METHOD.PATCH, route, handler)
   }
 
-  options<Result = any>(route: string, handler: NanaControllerHandler<__CTX, Result> | NanaController<__CTX, Result, Data>) {
+  options<Result = any>(route: string, handler: NanaControllerHandler<CTX, Result>) {
     return this._createController<Result>(METHOD.OPTIONS, route, handler)
   }
 
-  head<Result = any>(route: string, handler: NanaControllerHandler<__CTX, Result> | NanaController<__CTX, Result, Data>) {
+  head<Result = any>(route: string, handler: NanaControllerHandler<CTX, Result>) {
     return this._createController<Result>(METHOD.HEAD, route, handler)
   }
 }

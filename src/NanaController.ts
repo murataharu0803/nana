@@ -3,30 +3,31 @@ import {
   Response as ExpressResponse,
 } from 'express'
 
-import { defaultAction, defaultErrorHandler, defaultTransformer } from './defaults'
+import { defaultAction, defaultErrorHandler, defaultWrapper } from './defaults'
 import {
   Empty,
   NanaAction,
   NanaControllerHandler,
   NanaErrorHandler,
-  NanaTransformer,
+  NanaLogger,
+  NanaWrapper,
   Obj,
 } from './types'
 import { createContextArgument } from './util'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class NanaController<CTX extends Obj = Empty, Result = any, Data = Result> {
+export class NanaController<CTX extends Obj = Empty, Result = any> {
   public handler: NanaControllerHandler<CTX, Result>
-  public action?: NanaAction<CTX, Data>
+  public action?: NanaAction<CTX>
   public errorHandler?: NanaErrorHandler<CTX>
-  public transformer?: NanaTransformer<CTX, Result, Data>
+  public wrapper?: NanaWrapper<CTX>
+  public logger: NanaLogger
 
-  readonly _handler = async(req: ExpressRequest, res: ExpressResponse) => {
+  readonly finalHandler = async(req: ExpressRequest, res: ExpressResponse) => {
     const allCtx = createContextArgument<CTX>(req.ctx as CTX, req, res)
     try {
       const result: Result = await this.handler(allCtx)
-      const data: Data =
-        await this.transformer?.(result, allCtx) || defaultTransformer(result, allCtx)
+      const data = await this.wrapper?.(result, allCtx) || defaultWrapper(result, allCtx)
       res.locals.body = data
       await (this.action || defaultAction)(data, allCtx)
     } catch(err) {
@@ -34,7 +35,17 @@ export class NanaController<CTX extends Obj = Empty, Result = any, Data = Result
     }
   }
 
-  constructor(handler: NanaControllerHandler<CTX, Result>) {
+  constructor(
+    handler: NanaControllerHandler<CTX, Result>,
+    action?: typeof this.action,
+    wrapper?: typeof this.wrapper,
+    errorHandler?: typeof this.errorHandler,
+    logger?: typeof this.logger,
+  ) {
     this.handler = handler
+    this.action = action
+    this.wrapper = wrapper
+    this.errorHandler = errorHandler
+    this.logger = logger || console
   }
 }

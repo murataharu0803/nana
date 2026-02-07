@@ -16,7 +16,7 @@ server.run()
 - **Based on Express** - Leverages the power of Express.js
 - **Everything in Single Context** - Grab query, params, body, and more from a single context object (or add your own)
 - **Type-Safe** - Type everything
-- **Custom Action, Transformer, and Error Handler** - Organize and unify how responses are sent
+- **Custom Action, Wrapper, and Error Handler** - Organize and unify how responses are sent
 
 ## Installation
 
@@ -81,12 +81,12 @@ type CTXArgument<CustomCTX> = {
 }
 ```
 
-### NanaRouter - Action & Transformer & Error Handler
+### NanaRouter - Action & Wrapper & Error Handler
 ```ts
 // everything will be awaited
 const router = new NanaRouter<{ message: string }>(
   action?: (data, ctx) => void | Promise<void>,
-  transformer?: (raw, ctx) => ResponseData | Promise<ResponseData>,
+  wrapper?: (raw, ctx) => ResponseData | Promise<ResponseData>,
   errorHandler?: (err, ctx, errorLogger?) => void | Promise<void>,
 )
 
@@ -100,15 +100,15 @@ const customRedirectAction = (url, { res }) => { res.redirect(url) }
 // actions can be overridden in nested routers
 // remember to send the response, otherwise it will hang!
 
-// Transformer is used to transform the response data
+// Wrapper is used to wrap the response data
 // By default, it just returns the data as is
-// You can also use a custom transformer
-const customTransformer = (data, { req }) => {
-  // Transform data based on request
+// You can also use a custom Wrapper
+const customWrapper = (data, { req }) => {
+  // Wrap data based on request
   return { data, id: req.id }
 }
-// transformers will be wrapped recursively for nested routers
-// e.g. finalData = transformerC(transformerB(transformerA(data, ctx), ctx), ctx) // route A/B/C
+// Wrappers will be wrapped recursively for nested routers
+// e.g. finalData = WrapperC(WrapperB(WrapperA(data, ctx), ctx), ctx) // route A/B/C
 
 server.get('/error', () => {
   // throw a NanaError to return a specific HTTP error
@@ -157,7 +157,7 @@ router.use(middleware) // Add middleware to a router
 ```ts
 // handler: (context) => rawData | void
 const controller = new NanaController<ContextType>(handler)
-// the returned data from handler will be transformed before sending to action.
+// the returned data from handler will be wrapped before sending to action.
 
 router.get(route, controller) // Use controller in a route
 router.get(route, handler) // or directly pass a handler function

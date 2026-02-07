@@ -1,9 +1,9 @@
-import { defaultAction, defaultErrorHandler, defaultTransformer } from '@/defaults'
+import { defaultAction, defaultErrorHandler, defaultWrapper } from '@/defaults'
 import { NanaController } from '@/NanaController'
 import { NanaError } from '@/NanaError'
 import { NanaRouter } from '@/NanaRouter'
 import { NanaServer } from '@/NanaServer'
-import { GET } from '@/types'
+import { Empty, GET } from '@/types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { testData, testNana } from '~/tests/util'
 
@@ -28,13 +28,12 @@ describe('NanaController', () => {
   it('should handle with default functions', async() => {
     const server = new NanaServer()
     const dummyHandler = vi.fn(() => testData)
-    const controller = new NanaController(dummyHandler)
-    server.get('/test', controller)
+    server.get('/test', dummyHandler)
 
     await testNana(server, GET, '/test', 200, testData)
     expect(dummyHandler).toBeCalledTimes(1)
     expect(defaultAction).toBeCalledTimes(1)
-    expect(defaultTransformer).toBeCalledTimes(1)
+    expect(defaultWrapper).toBeCalledTimes(1)
     expect(defaultErrorHandler).toBeCalledTimes(0)
   })
 
@@ -42,56 +41,53 @@ describe('NanaController', () => {
     const server = new NanaServer()
     const dummyHandler = vi.fn(() => testData)
     const controller = new NanaController(dummyHandler)
-    server.expressApp.get('/test', controller._handler)
+    server.expressApp.get('/test', controller.finalHandler)
 
     await testNana(server, GET, '/test', 200, testData)
     expect(dummyHandler).toBeCalledTimes(1)
     expect(defaultAction).toBeCalledTimes(1)
-    expect(defaultTransformer).toBeCalledTimes(1)
+    expect(defaultWrapper).toBeCalledTimes(1)
     expect(defaultErrorHandler).toBeCalledTimes(0)
   })
 
   it('should handle with custom functions', async() => {
     const server = new NanaServer()
     const dummyAction = vi.fn(defaultAction)
-    const dummyTransformer = vi.fn(data => ({ nested: data }))
-    const router = new NanaRouter(
+    const dummyWrapper = vi.fn(data => ({ nested: data }))
+    const router = new NanaRouter<Empty>(
       dummyAction,
-      dummyTransformer,
+      dummyWrapper,
     )
     const dummyHandler = vi.fn(() => testData)
-    const controller = new NanaController(dummyHandler)
-    router.get('/test', controller)
+    router.get('/test', dummyHandler)
 
-    server.use('/', router)
+    server.useRoute('/api', router)
 
-    await testNana(server, GET, '/test', 200, { nested: testData })
+    await testNana(server, GET, '/api/test', 200, { nested: testData })
     expect(dummyHandler).toBeCalledTimes(1)
     expect(dummyAction).toBeCalledTimes(1)
-    expect(dummyTransformer).toBeCalledTimes(1)
+    expect(dummyWrapper).toBeCalledTimes(1)
   })
 
   it('should handle error', async() => {
     const server = new NanaServer()
     const dummyAction = vi.fn(defaultAction)
-    const dummyTransformer = vi.fn(defaultTransformer)
+    const dummyWrapper = vi.fn(defaultWrapper)
     const dummyErrorHandler = vi.fn(defaultErrorHandler)
-    const router = new NanaRouter(
+    const router = new NanaRouter<Empty>(
       dummyAction,
-      dummyTransformer,
+      dummyWrapper,
       dummyErrorHandler,
     )
     const dummyHandler = vi.fn(() => { throw new NanaError(500, 'Test Error') })
-    const controller = new NanaController(dummyHandler)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.get('/test', controller as any)
+    router.get('/test', dummyHandler)
 
-    server.use('/', router)
+    server.useRoute('/api', router)
 
-    await testNana(server, GET, '/test', 500, { error: 'Test Error' })
+    await testNana(server, GET, '/api/test', 500, { error: 'Test Error' })
     expect(dummyHandler).toBeCalledTimes(1)
     expect(dummyAction).toBeCalledTimes(0)
-    expect(dummyTransformer).toBeCalledTimes(0)
+    expect(dummyWrapper).toBeCalledTimes(0)
     expect(dummyErrorHandler).toBeCalledTimes(1)
   })
 
@@ -99,12 +95,12 @@ describe('NanaController', () => {
     const server = new NanaServer()
     const dummyHandler = vi.fn(() => { throw new NanaError(500, 'Test Error') })
     const controller = new NanaController(dummyHandler)
-    server.expressApp.get('/test', controller._handler)
+    server.expressApp.get('/test', controller.finalHandler)
 
     await testNana(server, GET, '/test', 500, { error: 'Test Error' })
     expect(dummyHandler).toBeCalledTimes(1)
     expect(defaultAction).toBeCalledTimes(0)
-    expect(defaultTransformer).toBeCalledTimes(0)
+    expect(defaultWrapper).toBeCalledTimes(0)
     expect(defaultErrorHandler).toBeCalledTimes(1)
   })
 })

@@ -1,15 +1,13 @@
-
-
 import {
   NextFunction as ExpressNext,
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express'
 
-import { defaultErrorHandler } from './defaults'
 import {
   Empty,
   NanaErrorHandler,
+  NanaLogger,
   NanaMiddlewareCreateContext,
   NanaPostHandler,
   Obj,
@@ -23,7 +21,8 @@ export class NanaMiddleware<
 > {
   public readonly getContext: NanaMiddlewareCreateContext<NewCTX, _ParentCTX>
   public readonly postHandler?: NanaPostHandler<_CTX>
-  public readonly errorHandler: NanaErrorHandler<_CTX>
+  public readonly errorHandler?: NanaErrorHandler<_CTX>
+  public readonly logger: NanaLogger
 
   readonly handler = async(
     req: ExpressRequest,
@@ -34,19 +33,33 @@ export class NanaMiddleware<
       const newCtx = await this.getContext(createContextArgument(req.ctx as _ParentCTX, req, res))
       Object.assign(req.ctx, newCtx || {})
       next()
-      this.postHandler?.(createContextArgument(req.ctx as _CTX, req, res))
+      res.on('finish', async() => {
+        try {
+          await this.postHandler?.(createContextArgument(req.ctx as _CTX, req, res))
+        } catch(err) {
+          this.logger.error(err)
+        }
+      })
     } catch(err) {
-      await this.errorHandler(err, createContextArgument(req.ctx as _CTX, req, res))
+      if (this.errorHandler) {
+        await this.errorHandler(
+          err,
+          createContextArgument(req.ctx as _CTX, req, res),
+          this.logger.error,
+        )
+      } else throw err
     }
   }
 
   constructor(
     getContext: NanaMiddlewareCreateContext<NewCTX, _ParentCTX> = _ => ({} as NewCTX),
-    errorHandler: NanaErrorHandler<_CTX> = defaultErrorHandler,
     postHandler?: NanaPostHandler<_CTX>,
+    errorHandler?: NanaErrorHandler<_CTX>,
+    logger: NanaLogger = console,
   ) {
     this.getContext = getContext
     this.errorHandler = errorHandler
     this.postHandler = postHandler
+    this.logger = logger
   }
 }

@@ -1,17 +1,27 @@
 {
   "name": "@harlos/nana",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A minimal, type-safe Node.js backend framework",
-  "author": "Harlos <cces4415@gmail.com>",
+  "author": "Harlos <murataharu0517@gmail.com>",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
-  "keywords": ["nodejs", "express", "framework", "typescript", "backend", "api", "middleware"],
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "nodejs",
+    "express",
+    "framework",
+    "typescript",
+    "backend",
+    "api",
+    "middleware"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/harlos0517/nana.git"
+    "url": "https://github.com/murataharu0803/nana.git"
   },
   "scripts": {
     "lint": "eslint",

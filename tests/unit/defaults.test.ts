@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi } from 'vitest'
 
-import { defaultAction, defaultTransformer } from '@/defaults'
+import { defaultAction, defaultWrapper } from '@/defaults'
 import { testData } from '~/tests/util'
 
 describe('defaults', () => {
@@ -16,9 +16,9 @@ describe('defaults', () => {
     expect(dummyRes.send).toBeCalledWith(testData)
   })
 
-  it('defaultTransformer', async() => {
-    const transformedData = defaultTransformer(testData, {} as any)
-    expect(transformedData).toEqual(testData)
+  it('defaultWrapper', async() => {
+    const wrappedData = defaultWrapper(testData, {} as any)
+    expect(wrappedData).toEqual(testData)
   })
 
   describe.sequential('defaultErrorHandler', async() => {

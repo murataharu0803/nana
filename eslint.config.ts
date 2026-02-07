@@ -24,11 +24,6 @@ export default tseslint.config(
         sourceType: 'module',
       },
     },
-    settings: {
-      react: {
-        version: 'detect',
-      },
-    },
     plugins: {
       ts: tseslint.plugin,
       '@stylistic': stylistic,

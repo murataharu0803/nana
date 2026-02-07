@@ -2,7 +2,6 @@ import { describe, it } from 'vitest'
 import { testNana } from './util'
 
 import { NanaError } from '@/NanaError'
-import { NanaMiddleware } from '@/NanaMiddleware'
 import { NanaRouter } from '@/NanaRouter'
 import { NanaServer } from '@/NanaServer'
 import { GET } from '@/types'
@@ -12,18 +11,20 @@ describe('Nana Framework Basic Tests', () => {
     const server = new NanaServer()
     const router = new NanaRouter()
     router.get('/hello', () => ({ message: 'Hello World' }))
-    server.use('/test', router)
+    server.useRoute('/test', router)
 
     await testNana(server, GET, '/test/hello', 200, { message: 'Hello World' })
   })
 
   it('should handle middleware context passing', async() => {
+    const router = new NanaRouter()
+    router.useMiddleware(() => ({ userId: 123 }))
+      .get('/user', ({ userId }) => {
+        return { user: userId || 'no-user' }
+      })
+
     const server = new NanaServer()
-    const router = server.use<{ userId: number }>('/api')
-    router.use(new NanaMiddleware<{ userId: number }>(() => ({ userId: 123 })))
-    router.get('/user', ({ userId }) => {
-      return { user: userId || 'no-user' }
-    })
+    server.useRoute('/api', router)
 
     await testNana(server, GET, '/api/user', 200, { user: 123 })
   })
