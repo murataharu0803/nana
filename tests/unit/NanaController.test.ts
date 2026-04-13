@@ -11,7 +11,7 @@ vi.mock('@/defaults', { spy: true })
 
 describe('NanaController', () => {
   beforeEach(() => {
-    vi.mock('@/defaults', { spy: true })
+    vi.mock('@/interface/defaults', { spy: true })
   })
 
   afterEach(() => {
