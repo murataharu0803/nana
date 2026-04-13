@@ -1,10 +1,10 @@
 import { describe, it } from 'vitest'
 import { testNana } from './util'
 
-import { NanaError } from '@/NanaError'
-import { NanaRouter } from '@/NanaRouter'
-import { NanaServer } from '@/NanaServer'
-import { GET } from '@/types'
+import { NanaError } from '@/interface/NanaError'
+import { NanaRouter } from '@/interface/NanaRouter'
+import { NanaServer } from '@/interface/NanaServer'
+import { GET } from '@/interface/types'
 
 describe('Nana Framework Basic Tests', () => {
   it('should handle basic GET request', async() => {

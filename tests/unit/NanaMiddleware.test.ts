@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { testCtx, testNana } from '~/tests/util'
 
-import { defaultErrorHandler } from '@/defaults'
-import { NanaError } from '@/NanaError'
-import { NanaMiddleware } from '@/NanaMiddleware'
-import { NanaServer } from '@/NanaServer'
-import { GET } from '@/types'
+import { defaultErrorHandler } from '@/interface/defaults'
+import { NanaError } from '@/interface/NanaError'
+import { NanaMiddleware } from '@/interface/NanaMiddleware'
+import { NanaServer } from '@/interface/NanaServer'
+import { GET } from '@/interface/types'
 
 describe('NanaMiddleware', () => {
   it('should construct', async() => {

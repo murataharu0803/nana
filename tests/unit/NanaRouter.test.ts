@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { NanaRouter } from '@/NanaRouter'
-import { METHOD } from '@/types'
+import { NanaRouter } from '@/interface/NanaRouter'
+import { METHOD } from '@/interface/types'
 
 describe('NanaRouter', () => {
   describe('constructor', async() => {

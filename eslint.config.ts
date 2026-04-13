@@ -32,7 +32,7 @@ export default tseslint.config(
       'curly': ['warn', 'multi-or-nest'],
       'object-shorthand': ['warn', 'always'],
       'eqeqeq': ['warn', 'always'],
-      'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      'no-unused-vars': 'off',
       '@stylistic/max-len': ['warn', 100],
       '@stylistic/indent': ['warn', 2],
       '@stylistic/semi': ['warn', 'never'],
@@ -60,7 +60,7 @@ export default tseslint.config(
           singleline: { delimiter: 'comma', requireLast: false },
         },
       ],
-      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
     },
   },
 ) as ConfigArray

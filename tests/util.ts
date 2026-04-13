@@ -2,8 +2,8 @@
 import request from 'supertest'
 import { expect, vi } from 'vitest'
 
-import { NanaServer } from '@/NanaServer'
-import { METHOD } from '@/types'
+import { NanaServer } from '@/interface/NanaServer'
+import { METHOD } from '@/interface/types'
 
 export const dryRun = (app: NanaServer) => new Promise<void>(resolve => {
   let server: any = null

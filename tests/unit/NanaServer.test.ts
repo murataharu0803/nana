@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { dryRun } from '~/tests/util'
 
-import { NanaServer } from '@/NanaServer'
+import { NanaServer } from '@/interface/NanaServer'
 
 describe('NanaServerApp', () => {
   it('should use default port', async() => {

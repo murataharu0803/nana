@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi } from 'vitest'
 
-import { defaultAction, defaultWrapper } from '@/defaults'
+import { defaultAction, defaultWrapper } from '@/interface/defaults'
 import { testData } from '~/tests/util'
 
 describe('defaults', () => {
@@ -31,8 +31,8 @@ describe('defaults', () => {
       vi.stubEnv('NODE_ENV', env)
       vi.resetModules()
 
-      const { defaultErrorHandler } = await import('@/defaults')
-      const { NanaError } = await import('@/NanaError')
+      const { defaultErrorHandler } = await import('@/interface/defaults')
+      const { NanaError } = await import('@/interface/NanaError')
 
       const error = errorType === 'NanaError' ? new NanaError(418, 'I\'m a teapot') :
         errorType === 'Error' ? new Error('I\'m a teapot') : 'I\'m a teapot'
@@ -77,7 +77,7 @@ describe('defaults', () => {
 
     it('should throw error if res.send fails', async() => {
       vi.stubEnv('NODE_ENV', 'development')
-      const { defaultErrorHandler } = await import('@/defaults')
+      const { defaultErrorHandler } = await import('@/interface/defaults')
       const sendError = new Error('Send failed')
       const dummyRes = {
         status: vi.fn().mockReturnThis(),

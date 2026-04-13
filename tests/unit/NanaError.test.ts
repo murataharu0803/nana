@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { NanaError } from '@/NanaError'
+import { NanaError } from '@/interface/NanaError'
 
 describe('NanaError', () => {
   it('should construct', async() => {
