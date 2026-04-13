@@ -1,0 +1,49 @@
+# file structure
+files:
+  - src/:
+    - routers.yaml
+    - middlewares/:
+      - auth1.ts
+      - auth2.ts
+    - modules/:
+      - user/:
+        - routes.yaml # optional, can auto discovery
+        - controllers/:
+          - getUser.ts # exports validation and controller function
+          - updateUser.post.ts
+          - user.crud.ts # macro, generates all CRUD routes
+
+
+# src/modules/user/routes.yaml
+routes:
+  - path: /
+    method: get
+    middlewares: [auth2]
+    controller: getUser
+  - path: crud/
+    method: crud # macro
+    middlewares: [auth2]
+    controller: getUser
+
+# src/routers.yaml
+routers:
+  - path: /users
+    module: user
+    middlewares: [auth1]
+
+# src/modules/user/controllers/getUser.ts
+exports:
+  - validation object
+  - controller function
+  # if middlesware is needed, must use yaml file
+
+# src/modules/user/controllers/updateUser.post.ts
+exports:
+  - validation object
+  - controller function
+
+# src/modules/user/controllers/user.crud.ts
+exports:
+  - macro options
+  - object of functions
+

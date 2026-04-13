@@ -1,0 +1,18 @@
+routes:
+  # Explicit route definitions
+  - path: /me
+    method: get
+    controller: getMe
+
+  - path: /:id
+    method: get
+    controller: getUserById
+
+  - path: /:id
+    method: patch
+    controller: updateUser
+
+  # CRUD macro — generates remaining standard routes
+  # - path: /
+  #   method: crud
+  #   crud: user.crud

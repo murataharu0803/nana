@@ -1,0 +1,12 @@
+routers:
+  - path: /users
+    module: user
+    middlewares: [auth]
+
+  - path: /posts
+    module: post
+    middlewares: [auth]
+
+  - path: /health
+    module: health
+    # no middlewares - public endpoint
